@@ -1,6 +1,8 @@
 import { chromium } from 'playwright';
 
-const BASE = 'http://localhost:5199';
+const BASE = 'http://localhost:5199/portfolioOS/';
+const BOOT_TEXT = "Type 'help' to see available commands.";
+const ABOUT = 'img[alt="Jordan Cao"]';
 const results = [];
 const check = (name, ok, detail = '') =>
   results.push(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`);
@@ -41,7 +43,7 @@ check(
   maxBox.width > vp.width - 10 && maxBox.height > vp.height - 60,
   `${maxBox.width.toFixed(0)}x${maxBox.height.toFixed(0)} at (${maxBox.x.toFixed(0)},${maxBox.y.toFixed(0)})`,
 );
-const promptVisible = await page.getByText('Welcome to jordan@portfolio').isVisible();
+const promptVisible = await page.getByText(BOOT_TEXT).isVisible();
 check('maximized window still shows content', promptVisible);
 
 // Clicking title bar (no movement) should NOT un-maximize
@@ -82,24 +84,24 @@ check(
 );
 
 // --- Terminal state survived minimize/restore, commands still work ---
-check('terminal scrollback survives minimize/restore', await page.getByText('Welcome to jordan@portfolio').isVisible());
+check('terminal scrollback survives minimize/restore', await page.getByText(BOOT_TEXT).isVisible());
 await page.mouse.click(300, 500); // click inside the (left-snapped) terminal to focus it
 await page.keyboard.type('whoami');
 await page.keyboard.press('Enter');
 await page.waitForTimeout(200);
-check('terminal whoami works', await page.getByText('Jordan Cao — Software Engineer').isVisible());
+check('terminal whoami works', await page.locator('div.whitespace-pre-wrap').getByText('jordan', { exact: true }).isVisible());
 
 // --- WORKSPACES: per-workspace windows, terminal auto-opens on first visit ---
 // Workspace A's terminal has whoami output; a fresh terminal won't.
-const whoamiOut = page.getByText('Jordan Cao — Software Engineer');
-await page.locator('button[aria-label="Workspace B"]').click();
+const whoamiOut = page.locator('div.whitespace-pre-wrap').getByText('jordan', { exact: true });
+await page.locator('button[aria-label="Workspace 2"]').click();
 await page.waitForTimeout(500);
 const visibleBoots = await page
-  .getByText('Welcome to jordan@portfolio')
+  .getByText(BOOT_TEXT)
   .filter({ visible: true })
   .count();
 check(
-  'workspace B auto-opens a fresh terminal',
+  'workspace 2 auto-opens a fresh terminal',
   visibleBoots === 1 && !(await whoamiOut.isVisible()),
   `${visibleBoots} visible terminal(s)`,
 );
@@ -108,25 +110,25 @@ await page.locator('button[aria-label="App launcher"]').click();
 await page.locator('nav button:has-text("About")').click();
 await page.waitForTimeout(400);
 check(
-  'launcher opens About on current workspace (B), no jump to A',
-  (await page.getByText('Boba Enjoyer').isVisible()) && !(await whoamiOut.isVisible()),
+  'launcher opens About on current workspace (2), no jump to 1',
+  (await page.locator(ABOUT).isVisible()) && !(await whoamiOut.isVisible()),
 );
 
-await page.locator('button[aria-label="Workspace A"]').click();
+await page.locator('button[aria-label="Workspace 1"]').click();
 await page.waitForTimeout(300);
 check(
-  'workspace A unchanged: its terminal back, no About',
-  (await whoamiOut.isVisible()) && !(await page.getByText('Boba Enjoyer').isVisible()),
+  'workspace 1 unchanged: its terminal back, no About',
+  (await whoamiOut.isVisible()) && !(await page.locator(ABOUT).isVisible()),
 );
 
 // Opening About on A creates a second, independent instance
 await page.locator('button[aria-label="App launcher"]').click();
 await page.locator('nav button:has-text("About")').click();
 await page.waitForTimeout(400);
-const aboutVisible = await page.getByText('Boba Enjoyer').filter({ visible: true }).count();
-const aboutCount = await page.getByText('Boba Enjoyer').count();
+const aboutVisible = await page.locator(ABOUT).filter({ visible: true }).count();
+const aboutCount = await page.locator(ABOUT).count();
 check(
-  'About opens separately on A too (2 instances)',
+  'About opens separately on 1 too (2 instances)',
   aboutVisible === 1 && aboutCount === 2,
   `${aboutCount} instances, ${aboutVisible} visible`,
 );
@@ -154,6 +156,24 @@ check(
   (await spotifyFrame.isVisible()) &&
     (await spotifyFrame.getAttribute('src')).includes('open.spotify.com/embed'),
 );
+
+// --- KEYBOARD: Alt+Q closes the focused window, Alt+3 switches workspace ---
+const visibleWindows = () => page.locator('.window-drag-handle').filter({ visible: true }).count();
+const beforeClose = await visibleWindows();
+await page.keyboard.press('Alt+KeyQ');
+await page.waitForTimeout(400);
+check('Alt+Q closes the focused window', (await visibleWindows()) === beforeClose - 1);
+await page.keyboard.press('Alt+Digit3');
+await page.waitForTimeout(400);
+check('Alt+3 switches to workspace 3', (await page.locator('button[aria-label="Workspace 3"]').getAttribute('class')).includes('bg-accent '));
+
+// --- TERMINAL: neofetch on boot, Tab completion, cat ---
+check('neofetch shows on boot', await page.getByText('SWE Intern @ Mercury').filter({ visible: true }).first().isVisible());
+await page.keyboard.type('cat con');
+await page.keyboard.press('Tab');
+await page.keyboard.press('Enter');
+await page.waitForTimeout(200);
+check('Tab completes and cat contact.txt prints email', await page.getByText(/^email\s+/).filter({ visible: true }).first().isVisible());
 
 console.log(results.join('\n'));
 await browser.close();

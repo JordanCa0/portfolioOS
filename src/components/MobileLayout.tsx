@@ -16,7 +16,7 @@ interface MobileLayoutProps {
   onSelectTheme: (id: string) => void;
 }
 
-/** Simplified stacked layout for < 768px — no draggable windows. */
+/** Simplified stacked layout for < 768px, no draggable windows. */
 export default function MobileLayout({
   dark,
   onToggleTheme,

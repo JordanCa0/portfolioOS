@@ -38,11 +38,7 @@ function ThemePreview({ theme }: { theme: Theme }) {
 export default function Themes({ currentId, onSelect }: ThemesProps) {
   return (
     <div className="p-6">
-      <h1 className="text-lg font-bold">Themes</h1>
-      <p className="mt-1 text-sm text-body-muted">
-        Pick a color scheme for the whole desktop. Your choice is remembered.
-      </p>
-      <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {THEMES.map((theme) => {
           const active = theme.id === currentId;
           return (

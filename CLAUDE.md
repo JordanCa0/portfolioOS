@@ -22,11 +22,11 @@ UI behavior is verified with a real-browser Playwright suite:
 mkdir -p /tmp/pw-test && cd /tmp/pw-test && npm init -y && npm i playwright \
   && npx playwright install chromium --only-shell
 # run (dev server on port 5199 expected by the test)
-cd ~/projects/portfolio && npm run dev -- --port 5199 &   # then:
+npm run dev -- --port 5199 &   # serves /portfolioOS/ (vite base); then:
 node tests/ui.test.mjs   # run from a dir with playwright installed, e.g. /tmp/pw-test
 ```
 
-All ~19 checks must pass before pushing window-manager or app changes.
+All ~23 checks must pass before pushing window-manager or app changes.
 `npm run build` (tsc + vite) must also be clean.
 
 ## Architecture
@@ -44,12 +44,15 @@ All ~19 checks must pass before pushing window-manager or app changes.
 - `src/themes.ts` — themes set CSS variables on documentElement; `:root` in
   `index.css` holds the Parchment defaults for first paint. Wallpaper and
   snap-preview tint from `--color-accent` via color-mix. Theme id persists in
-  localStorage ('theme'); old 'dark'/'light' values migrate.
+  localStorage ('theme'); old 'dark'/'light' values migrate. applyTheme also
+  toggles `.dark` on <html> for Tailwind's `dark:` variant.
 - `src/apps.ts` — single source for app registry, GitHub/LinkedIn/email/phone
   constants, and `SPOTIFY_URL` (any share link; Spotify.tsx rewrites it to
   the /embed/ form — non-embed links are blocked by X-Frame-Options).
-- `src/components/Terminal/` — commands in commands.ts; ghost "help"
-  typewriter hint shows until the first command runs.
+- `src/components/Terminal/` — commands + Tab completion in commands.ts,
+  neofetch boot block in Neofetch.tsx; ghost "help" typewriter hint shows
+  until the first command runs.
+- Keyboard binds (Alt = mod) live in App.tsx; Help.tsx lists them for display.
 - Mobile (<768px) renders `MobileLayout.tsx` (stacked sections), not the WM.
 - `public/resume.pdf` — bundled resume; replace the file to update it.
 

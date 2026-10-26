@@ -87,8 +87,16 @@ export function useWindowManager(): WindowManager {
   );
 
   const closeWindow = useCallback((id: string) => {
-    setWindows((ws) => ws.filter((w) => w.id !== id));
-    setFocusedId((f) => (f === id ? null : f));
+    setWindows((ws) => {
+      const closing = ws.find((w) => w.id === id);
+      const rest = ws.filter((w) => w.id !== id);
+      // Hand focus to the topmost remaining window on the same workspace
+      const next = rest
+        .filter((w) => w.workspace === closing?.workspace && !w.minimized)
+        .sort((a, b) => b.zIndex - a.zIndex)[0];
+      setFocusedId((f) => (f === id ? (next?.id ?? null) : f));
+      return rest;
+    });
   }, []);
 
   const focusWindow = useCallback((id: string) => {

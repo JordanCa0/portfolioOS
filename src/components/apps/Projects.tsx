@@ -22,14 +22,14 @@ const PROJECTS: Project[] = [
   {
     title: 'Portfolio OS',
     description:
-      'This site — a portfolio styled as a Hyprland desktop environment with a tiling window manager, edge/corner snapping, and a working terminal emulator.',
+      'This site. A portfolio styled as a Hyprland desktop, with a tiling window manager, edge and corner snapping, and a working terminal.',
     tech: ['React', 'TypeScript', 'Tailwind', 'Framer Motion'],
     link: 'https://github.com/JordanCa0/portfolioOS',
   },
   {
     title: 'Donor Prediction & Segmentation Dashboard',
     description:
-      'End-to-end predictive analytics workflow for donor outreach — modeling in Python, SQL pipelines, and Matplotlib/Power BI visualizations that communicate findings to non-technical stakeholders.',
+      'Predictive analytics for donor outreach: models in Python, SQL pipelines, and Matplotlib/Power BI visualizations for non-technical stakeholders.',
     tech: ['Python', 'SQL', 'VBA', 'Power BI'],
   },
   {
@@ -47,7 +47,7 @@ export default function Projects() {
       {PROJECTS.map((p) => (
         <article
           key={p.title}
-          className="flex flex-col rounded-lg border border-edge bg-chrome p-4 transition-colors hover:border-accent/60"
+          className="flex flex-col rounded-lg border border-edge bg-chrome p-4"
         >
           <h3 className="text-sm font-semibold">{p.title}</h3>
           <p className="mt-2 flex-1 text-xs leading-relaxed text-body-muted">
@@ -86,7 +86,7 @@ export default function Projects() {
             </div>
           ) : (
             <span className="mt-3 inline-flex items-center gap-1 text-xs text-body-muted">
-              <Lock size={12} /> Private repo — code available on request
+              <Lock size={12} /> Private repo, code available on request
             </span>
           )}
         </article>

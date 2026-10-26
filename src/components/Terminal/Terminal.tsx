@@ -1,25 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 import type { AppId } from '../../types';
-import { executeCommand } from './commands';
+import { complete, executeCommand } from './commands';
+import Neofetch from './Neofetch';
 
 interface TerminalProps {
   openApp: (appId: AppId) => void;
+  /** Its window has focus; the prompt grabs keyboard focus to match */
+  focused: boolean;
 }
 
 interface Line {
-  type: 'input' | 'output' | 'boot';
+  type: 'input' | 'output' | 'boot' | 'neofetch';
   text: string;
 }
 
 const PROMPT = 'jordan@portfolio:~$';
 
 const BOOT_LINES: Line[] = [
-  { type: 'boot', text: 'Welcome to jordan@portfolio' },
+  { type: 'neofetch', text: '' },
   { type: 'boot', text: "Type 'help' to see available commands." },
-  { type: 'boot', text: '─────────────────────────────────────' },
 ];
 
-export default function Terminal({ openApp }: TerminalProps) {
+export default function Terminal({ openApp, focused }: TerminalProps) {
   const [lines, setLines] = useState<Line[]>(BOOT_LINES);
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<string[]>([]);
@@ -30,10 +32,10 @@ export default function Terminal({ openApp }: TerminalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-focus on mount, auto-scroll on new output
+  // Take keyboard focus whenever the window is focused (incl. on open)
   useEffect(() => {
-    inputRef.current?.focus();
-  }, []);
+    if (focused) inputRef.current?.focus();
+  }, [focused]);
 
   useEffect(() => {
     if (!showGhost) {
@@ -71,6 +73,14 @@ export default function Terminal({ openApp }: TerminalProps) {
       setLines([]);
       return;
     }
+    if ('neofetch' in result) {
+      setLines((ls) => [
+        ...ls,
+        { type: 'input', text: value },
+        { type: 'neofetch', text: '' },
+      ]);
+      return;
+    }
     setLines((ls) => [
       ...ls,
       { type: 'input', text: value },
@@ -81,6 +91,25 @@ export default function Terminal({ openApp }: TerminalProps) {
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       submit();
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      // Tab on the empty prompt accepts the ghost hint
+      if (input === '' && showGhost) {
+        setInput('help');
+        setShowGhost(false);
+        return;
+      }
+      const { value, options } = complete(input);
+      setInput(value);
+      setShowGhost(false);
+      // Ambiguous: list the candidates under the prompt, like bash
+      if (options.length > 1) {
+        setLines((ls) => [
+          ...ls,
+          { type: 'input', text: input },
+          { type: 'output', text: options.join('  ') },
+        ]);
+      }
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       const idx = Math.min(historyIdx + 1, history.length - 1);
@@ -103,7 +132,9 @@ export default function Terminal({ openApp }: TerminalProps) {
       onClick={() => inputRef.current?.focus()}
     >
       {lines.map((line, i) =>
-        line.type === 'input' ? (
+        line.type === 'neofetch' ? (
+          <Neofetch key={i} />
+        ) : line.type === 'input' ? (
           <div key={i} className="whitespace-pre-wrap break-words">
             <span className="text-term-green">jordan@portfolio</span>
             <span className="text-body-muted">:</span>

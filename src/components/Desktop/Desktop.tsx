@@ -8,7 +8,7 @@ import { snapZoneRect } from '../Window/snap';
 
 interface DesktopProps {
   wm: WindowManager;
-  renderApp: (appId: AppId) => React.ReactNode;
+  renderApp: (appId: AppId, focused: boolean) => React.ReactNode;
 }
 
 export default function Desktop({ wm, renderApp }: DesktopProps) {
@@ -35,7 +35,7 @@ export default function Desktop({ wm, renderApp }: DesktopProps) {
       {/* Snap preview overlay shown while dragging near an edge/corner */}
       {preview && (
         <div
-          className="pointer-events-none absolute z-[9999] rounded-lg border-2 border-accent bg-snap-preview transition-all duration-100"
+          className="pointer-events-none absolute z-[9999] rounded-lg border-2 border-accent bg-snap-preview transition-[left,top,width,height] duration-150 ease-out"
           style={{
             left: preview.position.x,
             top: preview.position.y,
@@ -85,7 +85,7 @@ export default function Desktop({ wm, renderApp }: DesktopProps) {
               onUpdate={wm.updateWindow}
               onSnapPreview={setPreviewZone}
             >
-              {renderApp(w.appId)}
+              {renderApp(w.appId, wm.focusedId === w.id)}
             </Window>
           ))}
       </AnimatePresence>

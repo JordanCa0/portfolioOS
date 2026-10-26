@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss';
 
-// Palette values live in src/index.css as CSS variables (:root = light, .dark = dark)
-// so the same utility classes work in both themes. No hardcoded hex in components.
+// Palette values are CSS variables set by src/themes.ts (index.css :root holds
+// the first-paint defaults); applyTheme toggles `.dark` for the dark: variant. No hardcoded hex in components.
 export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   darkMode: 'class',

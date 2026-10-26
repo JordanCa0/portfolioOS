@@ -19,6 +19,9 @@ interface WindowProps {
   children: React.ReactNode;
 }
 
+// Strong ease-out: moves immediately, settles softly
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
+
 const MIN_WIDTH = 320;
 const MIN_HEIGHT = 220;
 
@@ -143,10 +146,10 @@ export default function Window({
       onMouseDown={() => onFocus(win.id)}
     >
       <motion.div
-        initial={{ scale: 0.92, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.92, opacity: 0 }}
-        transition={{ duration: 0.18, ease: 'easeOut' }}
+        initial={{ scale: 0.96, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1, transition: { duration: 0.2, ease: EASE_OUT } }}
+        // Closing is faster than opening: the user has already decided
+        exit={{ scale: 0.96, opacity: 0, transition: { duration: 0.14, ease: EASE_OUT } }}
         className={`flex h-full w-full flex-col overflow-hidden rounded-lg border bg-glass shadow-2xl backdrop-blur-glass ${
           focused ? 'border-accent/60 shadow-accent/20' : 'border-edge'
         }`}
@@ -166,17 +169,17 @@ export default function Window({
             <button
               aria-label="Minimize"
               onClick={() => onMinimize(win.id)}
-              className="h-3 w-3 rounded-full bg-term-amber transition-transform hover:scale-125"
+              className="h-3 w-3 rounded-full bg-term-amber transition-transform duration-100 ease-out active:scale-90"
             />
             <button
               aria-label="Maximize"
               onClick={toggleMaximize}
-              className="h-3 w-3 rounded-full bg-term-max transition-transform hover:scale-125"
+              className="h-3 w-3 rounded-full bg-term-max transition-transform duration-100 ease-out active:scale-90"
             />
             <button
               aria-label="Close"
               onClick={() => onClose(win.id)}
-              className="h-3 w-3 rounded-full bg-term-close transition-transform hover:scale-125"
+              className="h-3 w-3 rounded-full bg-term-close transition-transform duration-100 ease-out active:scale-90"
             />
           </div>
         </div>

@@ -26,7 +26,7 @@ export default function Spotify() {
         loading="lazy"
       />
       <p className="shrink-0 text-center text-[11px] text-body-muted">
-        Now spinning on jordan@portfolio — log in to Spotify for full tracks.
+        Log in to Spotify for full tracks.
       </p>
     </div>
   );

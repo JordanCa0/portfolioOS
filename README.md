@@ -1,6 +1,6 @@
 # Portfolio OS
 
-Personal portfolio website for me, styled as a Linux [Hyprland](https://hyprland.org/) desktop environment.
+My portfolio, styled as a Linux [Hyprland](https://hyprland.org/) desktop environment.
 
 The site behaves like a desktop OS: navigate with a working terminal emulator or a Hyprland-style app launcher. Sections open as floating, draggable, resizable windows that snap to screen edges and corners like a real tiling window manager.
 
@@ -10,14 +10,12 @@ The site behaves like a desktop OS: navigate with a working terminal emulator or
 
 ## Features
 
-- **Window manager** — draggable, resizable, focusable windows with z-index stacking, minimize/maximize, and open/close animations
-- **Hyprland-style snapping** — drag a window near an edge or corner to see a snap preview; drop to tile it into halves or quadrants. Two half-snapped windows form a true split-screen. Double-click the title bar to un-snap.
-- **Terminal emulator** — type `help` to list commands. Supports `about`, `resume`, `projects`, `skills`, `contact`, `whoami`, `ls`, `github`, `linkedin`, `clear`, and command history with arrow keys.
-- **App launcher** — sidebar panel listing all apps
-- **Top bar** — live clock, fake system stats, light/dark theme toggle, social links
-- **Light/dark mode** — warm parchment light theme by default, dark red/black theme via the toggle, persisted to localStorage
-- **Responsive** — full desktop experience at ≥768px, simplified stacked layout on mobile
-- **CSS-only wallpaper** — radial gradient with subtle SVG noise, no external images
+- **Window manager**: drag, resize, focus, minimize, maximize. Drag a window to an edge or corner to tile it into a half or quadrant; double-click the title bar to un-snap.
+- **Keyboard binds**: `Alt+Enter` terminal, `Alt+Q` close, `Alt+R` launcher, `Alt+1–5` workspaces (Alt stands in for Super, which the OS owns).
+- **Workspaces**: five, each with its own windows. A terminal opens on first visit.
+- **Terminal**: boots into `neofetch`. Tab completion, history with the arrow keys, `ls`, `cat`, `open`, and a few things you shouldn't type. `help` lists the rest.
+- **Themes**: Parchment, Crimson, Nord, Gruvbox, Catppuccin Mocha, Tokyo Night, Rosé Pine Dawn. Remembered across visits.
+- **Mobile**: below 768px it drops the window manager for a stacked layout.
 
 ## Tech stack
 

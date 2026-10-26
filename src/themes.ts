@@ -165,4 +165,7 @@ export function applyTheme(theme: Theme): void {
   s.setProperty('--color-text', c.text);
   s.setProperty('--color-text-muted', c.textMuted);
   s.setProperty('--color-border', c.border);
+  // Drives Tailwind's `dark:` variant and native controls/scrollbars
+  document.documentElement.classList.toggle('dark', theme.dark);
+  s.colorScheme = theme.dark ? 'dark' : 'light';
 }

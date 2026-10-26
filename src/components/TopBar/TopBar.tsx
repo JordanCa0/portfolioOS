@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Github, Grip, Linkedin, Moon, Sun } from 'lucide-react';
 import { GITHUB_URL, LINKEDIN_URL } from '../../apps';
+import { formatUptime } from '../../uptime';
 
 interface TopBarProps {
   dark: boolean;
@@ -12,7 +13,7 @@ interface TopBarProps {
   onSwitchWorkspace: (index: number) => void;
 }
 
-export const WORKSPACES = ['A', 'B', 'C', 'D', 'E'];
+export const WORKSPACES = ['1', '2', '3', '4', '5'];
 
 function formatTime(d: Date): string {
   let h = d.getHours();
@@ -31,21 +32,10 @@ export default function TopBar({
   onSwitchWorkspace,
 }: TopBarProps) {
   const [now, setNow] = useState(() => new Date());
-  // Fake system stats, slowly animated around a baseline
-  const [stats, setStats] = useState({ cpu: 7, ram: 38 });
 
   useEffect(() => {
     const clock = setInterval(() => setNow(new Date()), 1000);
-    const load = setInterval(() => {
-      setStats((s) => ({
-        cpu: Math.min(24, Math.max(2, s.cpu + Math.floor(Math.random() * 7) - 3)),
-        ram: Math.min(52, Math.max(30, s.ram + Math.floor(Math.random() * 5) - 2)),
-      }));
-    }, 2500);
-    return () => {
-      clearInterval(clock);
-      clearInterval(load);
-    };
+    return () => clearInterval(clock);
   }, []);
 
   return (
@@ -86,10 +76,7 @@ export default function TopBar({
 
       <div className="ml-auto flex items-center gap-3">
         <span className="hidden text-body-muted md:inline tabular-nums">
-          CPU {String(stats.cpu).padStart(2, ' ')}%
-        </span>
-        <span className="hidden text-body-muted md:inline tabular-nums">
-          RAM {stats.ram}%
+          {formatUptime(now.getTime())}
         </span>
         <button
           onClick={onToggleTheme}
