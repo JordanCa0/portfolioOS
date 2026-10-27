@@ -2,7 +2,7 @@ export default function About() {
   return (
     <div className="flex flex-col items-center gap-5 p-8 text-center">
       <img
-        src={`${import.meta.env.BASE_URL}icon.png`}
+        src={`${import.meta.env.BASE_URL}j-logo.svg`}
         alt="Jordan Cao"
         width={96}
         height={96}
