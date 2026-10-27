@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- back layer (outline only) -->
+  <rect x="72" y="72" width="392" height="392" rx="64" fill="none" stroke="#000" stroke-width="16"/>
+  <!-- front face with the J cut out (even-odd fill makes the J a hole) -->
+  <path fill="#000" fill-rule="evenodd" d="
+    M96 32 H360 A64 64 0 0 1 424 96 V360 A64 64 0 0 1 360 424 H96 A64 64 0 0 1 32 360 V96 A64 64 0 0 1 96 32 Z
+    M264 118 H312 V254 A84 84 0 0 1 144 254 V238 H192 V254 A36 36 0 0 0 264 254 Z"/>
+</svg>
