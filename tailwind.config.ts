@@ -1,5 +1,10 @@
 import type { Config } from 'tailwindcss';
 
+// CSS-variable colors that still support opacity modifiers (bg-accent/20):
+// Tailwind substitutes <alpha-value> with the modifier (0.2) or 1.
+const withAlpha = (v: string) =>
+  `color-mix(in srgb, var(${v}) calc(<alpha-value> * 100%), transparent)`;
+
 // Palette values are CSS variables set by src/themes.ts (index.css :root holds
 // the first-paint defaults); applyTheme toggles `.dark` for the dark: variant. No hardcoded hex in components.
 export default {
@@ -8,17 +13,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        desktop: 'var(--color-desktop)',
+        desktop: withAlpha('--color-desktop'),
         glass: 'var(--color-glass)',
-        chrome: 'var(--color-chrome)',
+        chrome: withAlpha('--color-chrome'),
         accent: {
-          DEFAULT: 'var(--color-accent)',
-          hover: 'var(--color-accent-hover)',
+          DEFAULT: withAlpha('--color-accent'),
+          hover: withAlpha('--color-accent-hover'),
           soft: 'var(--color-accent-soft)',
           contrast: 'var(--color-accent-contrast)',
         },
         body: {
-          DEFAULT: 'var(--color-text)',
+          DEFAULT: withAlpha('--color-text'),
           muted: 'var(--color-text-muted)',
         },
         edge: 'var(--color-border)',

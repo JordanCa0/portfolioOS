@@ -20,6 +20,7 @@ export const COMMAND_DESCRIPTIONS: Array<{ cmd: string; desc: string }> = [
   { cmd: 'contact', desc: 'Open Contact' },
   { cmd: 'themes', desc: 'Open the theme picker' },
   { cmd: 'spotify', desc: 'Open the music player' },
+  { cmd: 'blog', desc: 'Open my notes and ideas' },
   { cmd: 'whoami', desc: 'Print the current user' },
   { cmd: 'email', desc: 'Print my email' },
   { cmd: 'github', desc: 'Print my GitHub URL' },
@@ -36,6 +37,7 @@ const OPENABLE: AppId[] = [
   'themes',
   'spotify',
   'help',
+  'blog',
 ];
 
 const FILES = ['about/', 'projects/', 'skills/', 'resume.pdf', 'contact.txt', 'help.md'];
@@ -123,6 +125,7 @@ export function executeCommand(input: string, ctx: CommandContext): CommandResul
           'drwxr-xr-x  about/',
           'drwxr-xr-x  projects/',
           'drwxr-xr-x  skills/',
+          'drwxr-xr-x  blog/',
           '-rw-r--r--  resume.pdf',
           '-rw-r--r--  contact.txt',
           '-rw-r--r--  help.md',

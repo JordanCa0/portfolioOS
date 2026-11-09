@@ -1,4 +1,4 @@
-import { Github, Linkedin, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, Github, Linkedin, Moon, Sun } from 'lucide-react';
 import { APPS, GITHUB_URL, LINKEDIN_URL } from '../apps';
 import type { AppId } from '../types';
 import About from './apps/About';
@@ -8,12 +8,18 @@ import Skills from './apps/Skills';
 import Contact from './apps/Contact';
 import Themes from './apps/Themes';
 import Spotify from './apps/Spotify';
+import Explorer from './apps/blog/Explorer';
+import Notepad from './apps/blog/Notepad';
+import { useBlogContext } from './apps/blog/BlogContext';
 
 interface MobileLayoutProps {
   dark: boolean;
   onToggleTheme: () => void;
   themeId: string;
   onSelectTheme: (id: string) => void;
+  /** Blog file shown full-screen over the page */
+  openFile: { path: string; edit: boolean } | null;
+  onCloseFile: () => void;
 }
 
 /** Simplified stacked layout for < 768px, no draggable windows. */
@@ -22,12 +28,16 @@ export default function MobileLayout({
   onToggleTheme,
   themeId,
   onSelectTheme,
+  openFile,
+  onCloseFile,
 }: MobileLayoutProps) {
+  const { confirmClose } = useBlogContext();
   const sections: Array<{ id: AppId; node: React.ReactNode }> = [
     { id: 'about', node: <About /> },
     { id: 'projects', node: <Projects /> },
     { id: 'skills', node: <Skills /> },
     { id: 'resume', node: <Resume /> },
+    { id: 'blog', node: <div className="h-[420px]"><Explorer /></div> },
     { id: 'spotify', node: <div className="h-44"><Spotify /></div> },
     { id: 'themes', node: <Themes currentId={themeId} onSelect={onSelectTheme} /> },
     { id: 'contact', node: <Contact /> },
@@ -72,6 +82,26 @@ export default function MobileLayout({
           );
         })}
       </div>
+
+      {openFile && (
+        <div className="fixed inset-0 z-20 flex flex-col bg-desktop">
+          <div className="flex h-12 shrink-0 items-center gap-2 border-b border-edge bg-chrome px-2 text-sm">
+            <button
+              onClick={async () => {
+                if (await confirmClose('mobile-note', openFile.path.split('/').pop()!)) onCloseFile();
+              }}
+              aria-label="Back to notes"
+              className="grid h-9 w-9 place-items-center rounded hover:bg-accent/20"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <span className="truncate text-xs">{openFile.path.split('/').pop()}</span>
+          </div>
+          <div className="min-h-0 flex-1">
+            <Notepad path={openFile.path} windowId="mobile-note" startInEdit={openFile.edit} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

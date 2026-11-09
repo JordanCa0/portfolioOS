@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import type { AppId, Size, SnapZone } from '../../types';
+import type { Size, SnapZone, WindowInstance } from '../../types';
 import type { WindowManager } from '../../hooks/useWindowManager';
 import { APP_MAP } from '../../apps';
 import Window from '../Window/Window';
@@ -8,7 +8,12 @@ import { snapZoneRect } from '../Window/snap';
 
 interface DesktopProps {
   wm: WindowManager;
-  renderApp: (appId: AppId, focused: boolean) => React.ReactNode;
+  renderApp: (win: WindowInstance, focused: boolean) => React.ReactNode;
+}
+
+/** Notepad windows are titled by their file, like a real editor. */
+function windowTitle(w: WindowInstance): string | undefined {
+  return w.file ? `${w.file.slice(w.file.lastIndexOf('/') + 1)} — Notepad` : undefined;
 }
 
 export default function Desktop({ wm, renderApp }: DesktopProps) {
@@ -63,7 +68,7 @@ export default function Desktop({ wm, renderApp }: DesktopProps) {
                   className="flex items-center gap-2 rounded px-3 py-1.5 text-xs transition-colors hover:bg-accent/25"
                 >
                   <Icon size={14} className="text-accent-soft" />
-                  {app.label}
+                  {windowTitle(w) ?? app.label}
                 </button>
               );
             })}
@@ -76,6 +81,7 @@ export default function Desktop({ wm, renderApp }: DesktopProps) {
               key={w.id}
               win={w}
               app={APP_MAP[w.appId]}
+              title={windowTitle(w)}
               focused={wm.focusedId === w.id}
               hidden={w.minimized || w.workspace !== wm.activeWorkspace}
               getDesktopSize={getDesktopSize}
@@ -85,7 +91,7 @@ export default function Desktop({ wm, renderApp }: DesktopProps) {
               onUpdate={wm.updateWindow}
               onSnapPreview={setPreviewZone}
             >
-              {renderApp(w.appId, wm.focusedId === w.id)}
+              {renderApp(w, wm.focusedId === w.id)}
             </Window>
           ))}
       </AnimatePresence>

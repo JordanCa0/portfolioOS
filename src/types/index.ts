@@ -9,6 +9,8 @@ export type AppId =
   | 'contact'
   | 'themes'
   | 'spotify'
+  | 'blog'
+  | 'notepad'
   | 'help';
 
 export type SnapZone =
@@ -43,6 +45,10 @@ export interface WindowInstance {
   snapped: SnapZone;
   /** Free-floating geometry remembered while snapped, restored on un-snap. */
   restore: { position: Position; size: Size } | null;
+  /** Notepad: the blog file this window shows (path inside the content store) */
+  file?: string;
+  /** Notepad: open straight into edit mode (freshly created note) */
+  editOnOpen?: boolean;
 }
 
 export interface AppDefinition {

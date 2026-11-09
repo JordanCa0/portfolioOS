@@ -1,7 +1,32 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AppId, WindowInstance } from '../types';
 
 const DEFAULT_SIZE = { width: 700, height: 500 };
+
+/**
+ * Window layout survives a page refresh (sessionStorage: per tab, so a new
+ * visit still starts with a fresh desktop).
+ */
+const SESSION_KEY = 'wm-session';
+
+interface Session {
+  windows: WindowInstance[];
+  focusedId: string | null;
+  activeWorkspace: number;
+  visited: number[];
+}
+
+function loadSession(): Session | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw) as Session;
+    if (!Array.isArray(s.windows) || !s.windows.length) return null;
+    return s;
+  } catch {
+    return null;
+  }
+}
 
 export interface WindowManager {
   windows: WindowInstance[];
@@ -9,20 +34,43 @@ export interface WindowManager {
   activeWorkspace: number;
   switchWorkspace: (index: number) => void;
   openWindow: (appId: AppId) => void;
+  /** Open a blog file in its own Notepad window (focuses it if already open here). */
+  openFile: (path: string, edit?: boolean) => void;
   closeWindow: (id: string) => void;
   focusWindow: (id: string) => void;
   minimizeWindow: (id: string) => void;
   updateWindow: (id: string, patch: Partial<WindowInstance>) => void;
   clearFocus: () => void;
+  /** True when this page load restored windows from before a refresh. */
+  restored: boolean;
 }
 
 export function useWindowManager(): WindowManager {
-  const [windows, setWindows] = useState<WindowInstance[]>([]);
-  const [focusedId, setFocusedId] = useState<string | null>(null);
-  const [activeWorkspace, setActiveWorkspace] = useState(0);
-  const zCounter = useRef(10);
-  const idCounter = useRef(1);
-  const visitedWorkspaces = useRef(new Set([0]));
+  const [session] = useState(loadSession);
+  const [windows, setWindows] = useState<WindowInstance[]>(() =>
+    (session?.windows ?? []).map((w) => ({ ...w, editOnOpen: false })),
+  );
+  const [focusedId, setFocusedId] = useState<string | null>(session?.focusedId ?? null);
+  const [activeWorkspace, setActiveWorkspace] = useState(session?.activeWorkspace ?? 0);
+  const zCounter = useRef(Math.max(10, ...windows.map((w) => w.zIndex)));
+  const idCounter = useRef(
+    Math.max(0, ...windows.map((w) => Number(w.id.replace('win-', '')) || 0)) + 1,
+  );
+  const visitedWorkspaces = useRef(new Set(session?.visited ?? [0]));
+
+  useEffect(() => {
+    try {
+      const s: Session = {
+        windows,
+        focusedId,
+        activeWorkspace,
+        visited: [...visitedWorkspaces.current],
+      };
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(s));
+    } catch {
+      // storage unavailable (private mode, quota) — layout just won't persist
+    }
+  }, [windows, focusedId, activeWorkspace]);
 
   const buildWindow = (
     appId: AppId,
@@ -86,6 +134,32 @@ export function useWindowManager(): WindowManager {
     [activeWorkspace],
   );
 
+  const openFile = useCallback(
+    (path: string, edit = false) => {
+      setWindows((ws) => {
+        const existing = ws.find(
+          (w) => w.appId === 'notepad' && w.file === path && w.workspace === activeWorkspace,
+        );
+        if (existing) {
+          setFocusedId(existing.id);
+          return ws.map((w) =>
+            w.id === existing.id
+              ? { ...w, minimized: false, zIndex: ++zCounter.current }
+              : w,
+          );
+        }
+        const win = {
+          ...buildWindow('notepad', activeWorkspace, ws.length),
+          file: path,
+          editOnOpen: edit,
+        };
+        setFocusedId(win.id);
+        return [...ws, win];
+      });
+    },
+    [activeWorkspace],
+  );
+
   const closeWindow = useCallback((id: string) => {
     setWindows((ws) => {
       const closing = ws.find((w) => w.id === id);
@@ -127,10 +201,12 @@ export function useWindowManager(): WindowManager {
     activeWorkspace,
     switchWorkspace,
     openWindow,
+    openFile,
     closeWindow,
     focusWindow,
     minimizeWindow,
     updateWindow,
     clearFocus,
+    restored: session !== null,
   };
 }

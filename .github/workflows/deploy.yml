@@ -1,5 +1,7 @@
 name: Deploy to GitHub Pages
 
+# Every push rebuilds, including blog posts: the build generates the blog's
+# file index from public/blog.
 on:
   push:
     branches: [main]
@@ -19,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history: blog post dates come from git
       - uses: actions/setup-node@v4
         with:
           node-version: 20

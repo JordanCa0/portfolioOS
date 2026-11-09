@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Rnd } from 'react-rnd';
 import { motion } from 'framer-motion';
 import type { AppDefinition, Position, Size, SnapZone, WindowInstance } from '../../types';
@@ -7,6 +7,8 @@ import { detectSnapZone, snapZoneRect } from './snap';
 interface WindowProps {
   win: WindowInstance;
   app: AppDefinition;
+  /** Overrides app.label in the title bar (e.g. the open file's name) */
+  title?: string;
   focused: boolean;
   /** Minimized or on an inactive workspace — kept mounted so state survives */
   hidden: boolean;
@@ -28,6 +30,7 @@ const MIN_HEIGHT = 220;
 export default function Window({
   win,
   app,
+  title,
   focused,
   hidden,
   getDesktopSize,
@@ -43,6 +46,22 @@ export default function Window({
   const dragZone = useRef<SnapZone>(null);
   // Where the drag started, to tell real drags apart from plain clicks
   const dragStart = useRef<Position | null>(null);
+
+  // Snapped windows refit the desktop (after a refresh or a browser resize)
+  useEffect(() => {
+    const zone = win.snapped;
+    if (!zone) return;
+    const fit = () => {
+      const rect = snapZoneRect(zone, getDesktopSize());
+      if (
+        rect.position.x !== win.position.x || rect.position.y !== win.position.y ||
+        rect.size.width !== win.size.width || rect.size.height !== win.size.height
+      ) onUpdate(win.id, rect);
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [win.snapped, win.position, win.size, win.id, getDesktopSize, onUpdate]);
 
   const pointerZone = (e: MouseEvent | TouchEvent): SnapZone => {
     const point = 'touches' in e ? e.touches[0] : e;
@@ -159,7 +178,7 @@ export default function Window({
           onDoubleClick={unsnap}
         >
           <Icon size={14} className="text-accent-soft" />
-          <span className="flex-1 truncate text-xs font-medium">{app.label}</span>
+          <span className="flex-1 truncate text-xs font-medium">{title ?? app.label}</span>
           {/* Keep clicks on the control dots from starting a drag */}
           <div
             className="flex items-center gap-2"

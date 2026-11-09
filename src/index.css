@@ -81,3 +81,75 @@ body {
 .window-drag-handle:active {
   cursor: grabbing;
 }
+
+/* ---------- Blog (Notepad windows) ---------- */
+
+@keyframes window-in {
+  from { opacity: 0; transform: scale(0.97) translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.window-in {
+  animation: window-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .window-in { animation: none; }
+}
+/* Rendered note. Body text in a proportional face for long reading;
+   headings and code keep the terminal mono. */
+.prose-note {
+  font-family: ui-serif, Georgia, 'Iowan Old Style', serif;
+  font-size: 1.02rem;
+  line-height: 1.75;
+  overflow-wrap: anywhere;
+}
+.prose-note > * + * { margin-top: 1em; }
+.prose-note h1, .prose-note h2, .prose-note h3, .prose-note h4 {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 1.6em;
+}
+.prose-note h1 { font-size: 1.6rem; margin-top: 0; color: var(--color-accent); }
+.prose-note h2 { font-size: 1.2rem; }
+.prose-note h3 { font-size: 1.05rem; }
+.prose-note h2::before { content: '## '; color: var(--color-text-muted); font-weight: 400; }
+.prose-note a { color: var(--color-accent); text-decoration: underline; text-underline-offset: 3px; }
+.prose-note a:hover { color: var(--color-accent-hover); }
+.prose-note ul { list-style: disc; padding-left: 1.4em; }
+.prose-note ol { list-style: decimal; padding-left: 1.4em; }
+.prose-note li + li { margin-top: 0.25em; }
+.prose-note input[type='checkbox'] { margin-right: 0.4em; accent-color: var(--color-accent); }
+.prose-note blockquote {
+  border-left: 3px solid var(--color-accent);
+  padding: 0.2em 0 0.2em 1em;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+.prose-note code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.85em;
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.prose-note pre {
+  background: color-mix(in srgb, var(--color-text) 8%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.9em 1em;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+.prose-note pre code { background: none; padding: 0; }
+.prose-note img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  margin-left: auto;
+  margin-right: auto;
+}
+.prose-note hr { border: 0; border-top: 1px dashed var(--color-border); margin: 2em 0; }
+.prose-note table { border-collapse: collapse; font-size: 0.9em; width: 100%; }
+.prose-note th, .prose-note td { border: 1px solid var(--color-border); padding: 0.35em 0.6em; text-align: left; }
+.prose-note th { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }

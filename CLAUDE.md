@@ -62,3 +62,17 @@ All ~23 checks must pass before pushing window-manager or app changes.
 - Personal info only via constants in `src/apps.ts`, never inline.
 - Resume/About content mirrors Jordan's actual resume; don't invent entries.
 - Deployment (S3 + CloudFront, GitHub Pages mirror) is planned but not set up.
+- Blog: `blog` app = file explorer (`components/apps/blog/Explorer.tsx`);
+  each file opens in its own `notepad` window (`wm.openFile`, `win.file`).
+  Posts are plain files in `public/blog/` — add a folder or `.md`, push,
+  done. `blog-manifest.ts` (Vite plugin) generates `blog/manifest.json`
+  at build (and per request in dev); dates come from git history, so CI
+  checks out with `fetch-depth: 0`. Never commit a manifest.json by hand.
+  Dotfiles are hidden (`.gitkeep` keeps empty folders); so is `assets/`
+  (photo folder) unless in author mode. Author mode (GitHub
+  fine-grained token, Contents: write) lists the live git tree and commits
+  via the git data API (`lib/blog/github.ts`); each commit redeploys.
+  `#/blog/<path>` deep-links a note. Mobile: explorer inline, notes full-screen.
+- Tailwind colors use `withAlpha()` (color-mix) so opacity modifiers like
+  `bg-accent/20` work with CSS-variable colors; plain `var()` silently
+  produced no CSS for them.
