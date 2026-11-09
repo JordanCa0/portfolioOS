@@ -72,7 +72,7 @@ All ~23 checks must pass before pushing window-manager or app changes.
   (photo folder) unless in author mode. Author mode (GitHub
   fine-grained token, Contents: write) lists the live git tree and commits
   via the git data API (`lib/blog/github.ts`); each commit redeploys.
-  `#/blog/<path>` deep-links a note. Mobile: explorer inline, notes full-screen.
+  `#/blog` opens the explorer, `#/blog/<path>` deep-links a note. Mobile: explorer inline, notes full-screen.
 - Tailwind colors use `withAlpha()` (color-mix) so opacity modifiers like
   `bg-accent/20` work with CSS-variable colors; plain `var()` silently
   produced no CSS for them.

@@ -71,7 +71,8 @@ export default function MobileLayout({
           return (
             <section
               key={id}
-              className="overflow-hidden rounded-lg border border-edge bg-glass backdrop-blur-glass"
+              id={`section-${id}`}
+              className="scroll-mt-16 overflow-hidden rounded-lg border border-edge bg-glass backdrop-blur-glass"
             >
               <div className="flex items-center gap-2 border-b border-edge bg-chrome px-4 py-2.5">
                 <Icon size={14} className="text-accent-soft" />

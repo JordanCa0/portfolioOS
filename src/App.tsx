@@ -80,15 +80,29 @@ export default function App() {
     [isMobile, openFile],
   );
 
+  // #/blog opens the explorer; #/blog/<path> opens a note. Handled on load and
+  // on hash changes only (a ref keeps the handler current), so switching
+  // workspaces doesn't re-open the linked window there.
+  const onHash = useRef(() => {});
+  onHash.current = () => {
+    const hash = window.location.hash;
+    if (/^#\/blog\/?$/.test(hash)) {
+      if (isMobile) {
+        requestAnimationFrame(() =>
+          document.getElementById('section-blog')?.scrollIntoView({ behavior: 'smooth' }),
+        );
+      } else openWindow('blog');
+      return;
+    }
+    const m = hash.match(/^#\/blog\/(.+)$/);
+    if (m) showFile(decodeURI(m[1]));
+  };
   useEffect(() => {
-    const onHash = () => {
-      const m = window.location.hash.match(/^#\/blog\/(.+)$/);
-      if (m) showFile(decodeURI(m[1]));
-    };
-    onHash();
-    window.addEventListener('hashchange', onHash);
-    return () => window.removeEventListener('hashchange', onHash);
-  }, [showFile]);
+    const handle = () => onHash.current();
+    handle();
+    window.addEventListener('hashchange', handle);
+    return () => window.removeEventListener('hashchange', handle);
+  }, []);
 
   const under = (p: string, root: string) => p === root || p.startsWith(`${root}/`);
   const onMoved = useCallback(
