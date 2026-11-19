@@ -5,7 +5,12 @@ export interface CommandContext {
   openApp: (appId: AppId) => void;
 }
 
-export type CommandResult = { lines: string[] } | { clear: true } | { neofetch: true };
+export type CommandResult =
+  | { lines: string[] }
+  | { clear: true }
+  | { neofetch: true }
+  /** Login / logout is interactive and async, so Terminal runs it */
+  | { dashboard: string[] };
 
 export const COMMAND_DESCRIPTIONS: Array<{ cmd: string; desc: string }> = [
   { cmd: 'help', desc: 'List all available commands' },
@@ -21,6 +26,8 @@ export const COMMAND_DESCRIPTIONS: Array<{ cmd: string; desc: string }> = [
   { cmd: 'themes', desc: 'Open the theme picker' },
   { cmd: 'spotify', desc: 'Open the music player' },
   { cmd: 'blog', desc: 'Open my notes and ideas' },
+  { cmd: 'dashboard', desc: 'Log in to your planner (todos, habits, timers)' },
+  { cmd: 'dashboard logout', desc: 'Lock the dashboard' },
   { cmd: 'whoami', desc: 'Print the current user' },
   { cmd: 'email', desc: 'Print my email' },
   { cmd: 'github', desc: 'Print my GitHub URL' },
@@ -55,7 +62,7 @@ function helpLines(): string[] {
   return [
     'Available commands:',
     '',
-    ...COMMAND_DESCRIPTIONS.map(({ cmd, desc }) => `  ${cmd.padEnd(12)} ${desc}`),
+    ...COMMAND_DESCRIPTIONS.map(({ cmd, desc }) => `  ${cmd.padEnd(17)} ${desc}`),
     '',
     'Tab completes commands and file names.',
   ];
@@ -105,6 +112,7 @@ export function executeCommand(input: string, ctx: CommandContext): CommandResul
   if (cmd === '') return { lines: [] };
   if (cmd === 'clear') return { clear: true };
   if (cmd === 'neofetch') return { neofetch: true };
+  if (cmd === 'dashboard') return { dashboard: args };
 
   if (args.length === 0 && (OPENABLE as string[]).includes(cmd) && cmd !== 'help') {
     ctx.openApp(cmd as AppId);

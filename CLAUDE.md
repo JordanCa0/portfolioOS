@@ -73,6 +73,30 @@ All ~23 checks must pass before pushing window-manager or app changes.
   fine-grained token, Contents: write) lists the live git tree and commits
   via the git data API (`lib/blog/github.ts`); each commit redeploys.
   `#/blog` opens the explorer, `#/blog/<path>` deep-links a note. Mobile: explorer inline, notes full-screen.
+- Dashboard: `dashboard` in the terminal runs a tty-style login (Terminal.tsx
+  `Auth` steps; passwords are a password input with transparent text and
+  caret, never echoed). Unknown usernames get an account created. Data is
+  per-browser only: `lib/dashboard/vault.ts` encrypts each user's JSON with
+  AES-GCM under a PBKDF2 key from the password, in localStorage
+  'dashboard-vaults'. The key lives only in memory (`DashboardContext`), so
+  a refresh locks it again. A forgotten password means the data is gone.
+  Recurring tasks double as habits (completion chart + streaks); timers
+  ring from the provider, so they fire with the window closed. Desktop only.
+  Planner is Google-Calendar-like: todos with `start`/`end` (minutes) are
+  time blocks on the Day/Week hour grid; without them they're all-day.
+  Drag & drop is pointer-based (`calendar/useCalendarDrag.ts`): drop targets
+  carry `data-drop-date` + `data-drop-zone` (time | day | month) and events
+  render inside their target. When the window is ≥1180×600 (ResizeObserver
+  on the window, not the viewport) tabs give way to a one-page layout.
+  One-page layout is a tiling tree (`tiles/layout.ts`): columns of stacked
+  panels (calendar, day, timers, habits), flex weights in px-ish units,
+  persisted in localStorage 'dashboard-tiles'; a panel not in the tree is
+  closed. `TileLayout.tsx` drags a panel by its title bar onto another
+  panel's edge (dock as new column / stack) or middle (swap), and resizes
+  via dividers that write measured px back as weights (per-panel minW).
+  The todo editor lives in `calendar/EditorHost.tsx` so the calendar and
+  day list can sit in separate tiles. Tab mode keeps the fixed Planner
+  (calendar + day list, width in 'dashboard-layout' via `Splitter.tsx`).
 - Tailwind colors use `withAlpha()` (color-mix) so opacity modifiers like
   `bg-accent/20` work with CSS-variable colors; plain `var()` silently
   produced no CSS for them.

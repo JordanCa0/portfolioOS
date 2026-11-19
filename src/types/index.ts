@@ -11,6 +11,7 @@ export type AppId =
   | 'spotify'
   | 'blog'
   | 'notepad'
+  | 'dashboard'
   | 'help';
 
 export type SnapZone =

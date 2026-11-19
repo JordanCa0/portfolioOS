@@ -2,6 +2,7 @@ import {
   FileText,
   FolderOpen,
   HelpCircle,
+  LayoutDashboard,
   Mail,
   Music,
   NotebookPen,
@@ -23,6 +24,7 @@ export const APPS: AppDefinition[] = [
   { id: 'themes', label: 'Themes', icon: Palette },
   { id: 'spotify', label: 'Spotify', icon: Music },
   { id: 'blog', label: 'Blog', icon: NotebookPen },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'help', label: 'Help', icon: HelpCircle },
 ];
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { MotionConfig } from 'framer-motion';
 import { useWindowManager } from './hooks/useWindowManager';
 import { useIsMobile } from './hooks/useIsMobile';
@@ -21,7 +21,11 @@ import Explorer from './components/apps/blog/Explorer';
 import Notepad from './components/apps/blog/Notepad';
 import ErrorBoundary from './components/apps/blog/ErrorBoundary';
 import { BlogProvider, useBlogContext } from './components/apps/blog/BlogContext';
+import { DashboardProvider } from './components/apps/dashboard/DashboardContext';
 import type { WindowManager } from './hooks/useWindowManager';
+
+// Loaded on first open; the login flow only needs DashboardContext
+const Dashboard = lazy(() => import('./components/apps/dashboard/Dashboard'));
 
 export default function App() {
   const wm = useWindowManager();
@@ -143,6 +147,14 @@ export default function App() {
           return <Spotify />;
         case 'help':
           return <Help />;
+        case 'dashboard':
+          return (
+            <ErrorBoundary>
+              <Suspense fallback={null}>
+                <Dashboard openApp={openWindow} />
+              </Suspense>
+            </ErrorBoundary>
+          );
         case 'blog':
           return (
             <ErrorBoundary>
@@ -162,7 +174,7 @@ export default function App() {
 
   const provider = (children: React.ReactNode) => (
     <BlogProvider compact={isMobile} openFile={showFile} onMoved={onMoved} onRemoved={onRemoved}>
-      {children}
+      <DashboardProvider>{children}</DashboardProvider>
     </BlogProvider>
   );
 

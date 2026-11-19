@@ -175,6 +175,205 @@ await page.keyboard.press('Enter');
 await page.waitForTimeout(200);
 check('Tab completes and cat contact.txt prints email', await page.getByText(/^email\s+/).filter({ visible: true }).first().isVisible());
 
+// --- DASHBOARD: tty-style login with hidden password, encrypted vault ---
+const term = page.locator('input[aria-label="jordan@portfolio:~$"]').filter({ visible: true });
+const SECRET = 'hunter22';
+await page.evaluate(() => localStorage.removeItem('dashboard-vaults'));
+await term.fill('dashboard');
+await term.press('Enter');
+const loginInput = page.locator('input[aria-label="login:"]');
+await loginInput.fill('tester');
+await loginInput.press('Enter');
+const newPw = page.locator('input[aria-label="New password:"]');
+check('unknown user is offered a new account', await newPw.isVisible());
+check('password prompt is a hidden field', (await newPw.getAttribute('type')) === 'password');
+await newPw.fill(SECRET);
+await newPw.press('Enter');
+const confirmPw = page.locator('input[aria-label="Retype new password:"]');
+await confirmPw.fill(SECRET);
+await confirmPw.press('Enter');
+const lockBtn = page.locator('button[aria-label="Log out"]');
+await lockBtn.waitFor({ timeout: 8000 });
+check('account creation opens the dashboard', await lockBtn.isVisible());
+check(
+  'password is never echoed to the terminal',
+  (await page.getByText(SECRET).count()) === 0 &&
+    (await page.getByText(/^New password: $/).filter({ visible: true }).count()) === 1,
+);
+
+await page.locator('input[aria-label="New todo"]').fill('Write tests');
+await page.locator('input[aria-label="New todo"]').press('Enter');
+const dayPanel = page.locator('aside[aria-label="Selected day"]');
+await dayPanel.locator('button[aria-label="Check Write tests"]').click();
+check('todo can be added and checked off', await dayPanel.locator('button[aria-label="Uncheck Write tests"]').isVisible());
+
+// --- CALENDAR: Google-Calendar-style time blocks and drag & drop ---
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const now = new Date();
+const today = ymd(now);
+// A neighbour day in the same Mon–Sun week
+const other = ymd(new Date(now.getFullYear(), now.getMonth(), now.getDate() + (now.getDay() === 0 ? -1 : 1)));
+const HOUR = 44;
+await page.locator('[data-testid="time-grid"]').evaluate((el) => (el.scrollTop = 8 * 44));
+const col = (date) => page.locator(`[data-drop-zone="time"][data-drop-date="${date}"]`);
+const yAt = async (date, min) => (await col(date).boundingBox()).y + (min / 60) * HOUR;
+const xOf = async (date) => { const b = await col(date).boundingBox(); return b.x + b.width / 2; };
+const dragTo = async (x1, y1, x2, y2) => {
+  await page.mouse.move(x1, y1);
+  await page.mouse.down();
+  await page.mouse.move((x1 + x2) / 2, (y1 + y2) / 2, { steps: 4 });
+  await page.mouse.move(x2, y2, { steps: 4 });
+  await page.mouse.up();
+};
+
+await dragTo(await xOf(today), (await yAt(today, 600)) + 3, await xOf(today), (await yAt(today, 690)) + 3);
+const title = page.locator('input[aria-label="New event title"]');
+await title.fill('Deep work');
+await title.press('Enter');
+const block = (date) => col(date).locator('[role="button"][aria-label^="Deep work"]');
+check('dragging on the grid creates a time block', (await block(today).getAttribute('aria-label'))?.includes('10:00') && (await block(today).getAttribute('aria-label'))?.includes('11:30'), await block(today).getAttribute('aria-label'));
+
+const bb = await block(today).boundingBox();
+await dragTo(bb.x + 10, bb.y + 8, await xOf(other), (await yAt(other, 840)) + 8);
+check('dragging a block moves it to another day and time', (await block(other).count()) === 1 && (await block(today).count()) === 0 && (await block(other).getAttribute('aria-label')).includes('2:00'), await block(other).getAttribute('aria-label'));
+
+const bb2 = await block(other).boundingBox();
+await dragTo(bb2.x + 10, bb2.y + bb2.height - 2, bb2.x + 10, bb2.y + bb2.height - 2 + HOUR);
+check('dragging the bottom edge resizes a block', (await block(other).getAttribute('aria-label')).includes('4:30'), await block(other).getAttribute('aria-label'));
+
+await block(other).click();
+check('clicking a block opens its editor', await page.locator('[role="dialog"][aria-label="Edit Deep work"]').isVisible());
+await page.keyboard.press('Escape');
+
+await page.locator('[role="tab"]:has-text("month")').click();
+const chip = page.locator(`[data-drop-zone="month"][data-drop-date="${today}"] span[title="Write tests"]`);
+const cb = await chip.boundingBox();
+const target = await page.locator(`[data-drop-zone="month"][data-drop-date="${other}"]`).boundingBox();
+await dragTo(cb.x + 10, cb.y + 5, target.x + target.width / 2, target.y + target.height - 10);
+check('month view: dragging a todo moves it to another day', (await page.locator(`[data-drop-zone="month"][data-drop-date="${other}"] span[title="Write tests"]`).count()) === 1);
+// put it back for the persistence check below
+const cb2 = await page.locator(`[data-drop-zone="month"][data-drop-date="${other}"] span[title="Write tests"]`).boundingBox();
+const back = await page.locator(`[data-drop-zone="month"][data-drop-date="${today}"]`).boundingBox();
+await dragTo(cb2.x + 10, cb2.y + 5, back.x + back.width / 2, back.y + back.height - 10);
+await page.locator(`[data-drop-zone="month"][data-drop-date="${today}"]`).click({ position: { x: 5, y: 5 } });
+
+await page.locator('button[role="tab"]:has-text("Habits")').click();
+await page.locator('input[aria-label="New recurring task"]').fill('Read');
+await page.locator('input[aria-label="New recurring task"]').press('Enter');
+const todayKey = await page.evaluate(() => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+});
+await page.locator(`button[aria-label="Read on ${todayKey}: not done"]`).click();
+check(
+  'habit check-in shows in the completion chart',
+  (await page.locator(`[role="listitem"][aria-label="${todayKey}: 100% (1 of 1)"]`).count()) === 1,
+);
+
+await page.locator('button[role="tab"]:has-text("Timers")').click();
+await page.getByRole('button', { name: '5m', exact: true }).click();
+await page.locator('button:has-text("Start")').click();
+await page.waitForTimeout(1300);
+check('timer counts down', /^4:5\d$/.test((await page.locator('p.text-3xl').first().textContent()) ?? ''));
+
+await page.waitForTimeout(500); // let the debounced save land
+const vault = await page.evaluate(() => localStorage.getItem('dashboard-vaults') ?? '');
+check('vault is encrypted at rest', vault.includes('"tester"') && !vault.includes('Write tests'));
+
+await lockBtn.click();
+check('lock returns to the locked screen', await page.getByText('Dashboard is locked').isVisible());
+await term.fill('dashboard tester');
+await term.press('Enter');
+const pw = page.locator('input[aria-label="Password:"]');
+await pw.fill('wrong-password');
+await pw.press('Enter');
+await page.getByText('Login incorrect').waitFor({ timeout: 8000 });
+check('wrong password is rejected', await page.getByText('Login incorrect').isVisible());
+await term.fill('dashboard tester');
+await term.press('Enter');
+await pw.fill(SECRET);
+await pw.press('Enter');
+await lockBtn.waitFor({ timeout: 8000 });
+await page.locator('button[role="tab"]:has-text("Planner")').click();
+check('correct password restores saved data', await dayPanel.locator('button[aria-label="Uncheck Write tests"]').isVisible());
+
+const dashMax = page.locator('.window-drag-handle:has-text("Dashboard") button[aria-label="Maximize"]');
+await dashMax.click();
+await page.waitForTimeout(400);
+const panel = (name) => page.locator(`section[data-panel="${name}"]`);
+const box = async (name) => panel(name).boundingBox();
+check(
+  'maximized dashboard tiles every panel on one page',
+  (await page.locator('[data-layout="wide"]').count()) === 1 &&
+    (await Promise.all(['calendar', 'day', 'timers', 'habits'].map((n) => panel(n).isVisible()))).every(Boolean),
+);
+
+// --- REARRANGE: drag a panel's title bar onto another panel's edge or middle ---
+const dragPanel = async (name, target, fx, fy) => {
+  const h = await panel(name).locator('header').boundingBox();
+  const t = await box(target);
+  await page.mouse.move(h.x + 60, h.y + h.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(h.x + 80, h.y + 20, { steps: 3 });
+  await page.mouse.move(t.x + t.width * fx, t.y + t.height * fy, { steps: 6 });
+  await page.waitForTimeout(80);
+  await page.mouse.up();
+  await page.waitForTimeout(150);
+};
+// Timers to the left edge of the calendar: becomes the first column
+await dragPanel('timers', 'calendar', 0.08, 0.5);
+let [tm, cal] = [await box('timers'), await box('calendar')];
+check('docking a panel on another’s left edge makes it a new column there', tm.x < cal.x && Math.abs(tm.height - cal.height) < 4, `timers x=${tm.x} cal x=${cal.x}`);
+// Habits onto the middle of the timers panel: they swap places
+const habitsBefore = await box('habits');
+await dragPanel('habits', 'timers', 0.5, 0.5);
+const [hb, tm2] = [await box('habits'), await box('timers')];
+check('dropping on a panel’s middle swaps the two', hb.x < cal.x && Math.abs(tm2.x - habitsBefore.x) < 4, `habits x=${hb.x}, timers x=${tm2.x}`);
+// Day list onto the bottom edge of habits: stacks under it
+await dragPanel('day', 'habits', 0.5, 0.92);
+const [hb2, dayBox] = [await box('habits'), await box('day')];
+check('docking on a bottom edge stacks the panels in one column', Math.abs(dayBox.x - hb2.x) < 4 && dayBox.y > hb2.y, `day (${dayBox.x},${dayBox.y}) habits (${hb2.x},${hb2.y})`);
+const savedTiles = JSON.parse(await page.evaluate(() => localStorage.getItem('dashboard-tiles')));
+check('the arrangement is remembered', savedTiles[0].tiles.map((t) => t.id).join() === 'habits,day', JSON.stringify(savedTiles.map((c) => c.tiles.map((t) => t.id))));
+
+// --- RESIZE: dividers between columns and between stacked panels ---
+const splitterBetween = (label) => page.locator(`[role="separator"][aria-label="${label}"]`);
+const dragBy = async (loc, dx, dy) => {
+  const b = await loc.boundingBox();
+  const x = b.x + b.width / 2, y = b.y + b.height / 2;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + dx / 2, y + dy / 2, { steps: 3 });
+  await page.mouse.move(x + dx, y + dy, { steps: 3 });
+  await page.mouse.up();
+};
+const w0 = (await box('habits')).width;
+await dragBy(splitterBetween('Resize habits column'), 60, 0); // calendar column keeps its 380px minimum
+const h0 = (await box('habits')).height;
+await dragBy(splitterBetween('Resize habits panel'), 0, 100);
+check('dividers resize columns and stacked panels',
+  Math.abs((await box('habits')).width - w0 - 60) <= 3 && Math.abs((await box('habits')).height - h0 - 100) <= 3,
+  `w ${w0}→${(await box('habits')).width}, h ${h0}→${(await box('habits')).height}`);
+await dragBy(splitterBetween('Resize habits column'), 600, 0);
+check('a column can’t be squeezed below its minimum', Math.abs((await box('calendar')).width - 380) <= 2, `calendar ${(await box('calendar')).width}px`);
+
+// --- CLOSE / REOPEN ---
+const panelToggle = (name) => page.locator(`[role="group"][aria-label="Panels"] button:has-text("${name}")`);
+await panel('habits').locator('button[aria-label="Close habits"]').click();
+check('closing a panel removes it and the toggle shows it closed',
+  (await panel('habits').count()) === 0 && (await panelToggle('Habits').getAttribute('aria-pressed')) === 'false' && (await box('day')).height > h0 + 200);
+await panelToggle('Habits').click();
+check('the toggle reopens a closed panel', await panel('habits').isVisible());
+await panel('calendar').locator('button[aria-label="Close calendar"]').click();
+check('with the calendar closed, the day list gets its own day arrows', await panel('day').locator('button[aria-label="Next day"]').isVisible());
+for (const n of ['day', 'timers', 'habits']) await panel(n).locator(`button[aria-label="Close ${n === 'day' ? 'day list' : n}"]`).click();
+check('all panels closed shows a way back', await page.getByText('All panels are closed').isVisible());
+await page.locator('button:has-text("Show everything")').click();
+check('Show everything restores the default layout',
+  (await Promise.all(['calendar', 'day', 'timers', 'habits'].map((n) => panel(n).isVisible()))).every(Boolean) &&
+    (await page.locator('button:has-text("Reset layout")').isDisabled()));
+
+
 console.log(results.join('\n'));
 await browser.close();
 process.exit(results.some((r) => r.startsWith('FAIL')) ? 1 : 0);

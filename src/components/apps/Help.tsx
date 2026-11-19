@@ -19,7 +19,7 @@ function Table({ rows }: { rows: Array<{ key: string; desc: string }> }) {
             i % 2 === 0 ? 'bg-chrome' : ''
           }`}
         >
-          <code className="w-28 shrink-0 text-term-green">{key}</code>
+          <code className="w-36 shrink-0 text-term-green">{key}</code>
           <span className="text-xs text-body-muted">{desc}</span>
         </div>
       ))}

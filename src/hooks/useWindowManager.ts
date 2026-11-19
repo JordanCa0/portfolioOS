@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AppId, WindowInstance } from '../types';
+import type { AppId, Size, WindowInstance } from '../types';
 
 const DEFAULT_SIZE = { width: 700, height: 500 };
+/** Apps that need more room than the default, clamped to the viewport */
+const APP_SIZES: Partial<Record<AppId, Size>> = {
+  dashboard: { width: 1000, height: 660 },
+};
 
 /**
  * Window layout survives a page refresh (sessionStorage: per tab, so a new
@@ -77,9 +81,14 @@ export function useWindowManager(): WindowManager {
     workspace: number,
     offset: number,
   ): WindowInstance => {
+    const want = APP_SIZES[appId] ?? DEFAULT_SIZE;
+    const size = {
+      width: Math.min(want.width, window.innerWidth - 40),
+      height: Math.min(want.height, window.innerHeight - 80),
+    };
     // Slightly randomized spawn so windows don't stack perfectly
-    const maxX = Math.max(40, window.innerWidth - DEFAULT_SIZE.width - 80);
-    const maxY = Math.max(40, window.innerHeight - DEFAULT_SIZE.height - 120);
+    const maxX = Math.max(20, window.innerWidth - size.width - 80);
+    const maxY = Math.max(20, window.innerHeight - size.height - 120);
     return {
       id: `win-${idCounter.current++}`,
       appId,
@@ -90,7 +99,7 @@ export function useWindowManager(): WindowManager {
         x: Math.min(60 + offset * 36 + Math.floor(Math.random() * 100), maxX),
         y: Math.min(30 + offset * 28 + Math.floor(Math.random() * 60), maxY),
       },
-      size: { ...DEFAULT_SIZE },
+      size,
       snapped: null,
       restore: null,
     };
