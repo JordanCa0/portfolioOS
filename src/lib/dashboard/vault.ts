@@ -37,6 +37,81 @@ function writeVault(user: string, vault: Vault) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
 }
 
+// ----- Backups: move an account between browsers/origins (e.g. localhost → the
+// live site). The file holds the vault as stored, so it stays encrypted and
+// only opens with the account's password.
+
+const BACKUP_KIND = 'portfolio-dashboard-backup';
+
+interface Backup {
+  kind: typeof BACKUP_KIND;
+  v: 1;
+  user: string;
+  exported: string;
+  vault: Vault;
+}
+
+export function exportBackup(user: string): { filename: string; json: string } | null {
+  const name = normalizeUser(user);
+  const vault = readVaults()[name];
+  if (!vault) return null;
+  const backup: Backup = { kind: BACKUP_KIND, v: 1, user: name, exported: new Date().toISOString(), vault };
+  return { filename: `dashboard-${name}.json`, json: JSON.stringify(backup, null, 2) };
+}
+
+/** Throws a readable message when the file isn't a dashboard backup */
+export function parseBackup(text: string): { user: string; vault: Vault } {
+  let b: Partial<Backup>;
+  try {
+    b = JSON.parse(text) as Partial<Backup>;
+  } catch {
+    throw new Error('not a JSON file');
+  }
+  const v = b.vault;
+  if (
+    b.kind !== BACKUP_KIND ||
+    typeof b.user !== 'string' ||
+    !USERNAME_RE.test(b.user) ||
+    !v ||
+    v.v !== 1 ||
+    ![v.salt, v.iv, v.ct].every((s) => typeof s === 'string' && /^[A-Za-z0-9+/=]+$/.test(s))
+  ) {
+    throw new Error('not a dashboard backup');
+  }
+  return { user: b.user, vault: { v: 1, salt: v.salt, iv: v.iv, ct: v.ct } };
+}
+
+/** Writes the backup's vault into this browser (replacing an account of the same name) */
+export function restoreBackup(b: { user: string; vault: Vault }) {
+  writeVault(b.user, b.vault);
+}
+
+/** Save a text file to the user's downloads */
+export function download(filename: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Open the file picker for a backup; resolves with its text, or null if cancelled */
+export function pickBackupFile(): Promise<string | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return resolve(null);
+      file.text().then(resolve, () => resolve(null));
+    };
+    input.addEventListener('cancel', () => resolve(null));
+    input.click();
+  });
+}
+
 export function normalizeUser(user: string): string {
   return user.trim().toLowerCase();
 }

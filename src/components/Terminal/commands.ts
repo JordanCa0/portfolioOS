@@ -28,6 +28,8 @@ export const COMMAND_DESCRIPTIONS: Array<{ cmd: string; desc: string }> = [
   { cmd: 'blog', desc: 'Open my notes and ideas' },
   { cmd: 'dashboard', desc: 'Log in to your planner (todos, habits, timers)' },
   { cmd: 'dashboard logout', desc: 'Lock the dashboard' },
+  { cmd: 'dashboard export', desc: 'Download an encrypted backup of your dashboard' },
+  { cmd: 'dashboard import', desc: 'Restore a backup (e.g. move local data to the live site)' },
   { cmd: 'whoami', desc: 'Print the current user' },
   { cmd: 'email', desc: 'Print my email' },
   { cmd: 'github', desc: 'Print my GitHub URL' },

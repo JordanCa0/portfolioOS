@@ -3,7 +3,16 @@ import type { AppId } from '../../types';
 import { complete, executeCommand } from './commands';
 import Neofetch from './Neofetch';
 import { useDashboard } from '../apps/dashboard/DashboardContext';
-import { MIN_PASSWORD, normalizeUser, USERNAME_RE } from '../../lib/dashboard/vault';
+import {
+  download,
+  exportBackup,
+  MIN_PASSWORD,
+  normalizeUser,
+  parseBackup,
+  pickBackupFile,
+  restoreBackup,
+  USERNAME_RE,
+} from '../../lib/dashboard/vault';
 
 /** Interactive `dashboard` login, step by step like a tty login */
 type Auth =
@@ -11,7 +20,9 @@ type Auth =
   | { step: 'password'; user: string }
   | { step: 'new'; user: string }
   | { step: 'confirm'; user: string; first: string }
-  | { step: 'busy'; label: string };
+  | { step: 'busy'; label: string }
+  /** Importing a backup over an account that already exists here */
+  | { step: 'overwrite'; backup: ReturnType<typeof parseBackup> };
 
 const AUTH_PROMPT: Record<Auth['step'], string> = {
   user: 'login: ',
@@ -19,6 +30,7 @@ const AUTH_PROMPT: Record<Auth['step'], string> = {
   new: 'New password: ',
   confirm: 'Retype new password: ',
   busy: '',
+  overwrite: 'Replace it? [y/N] ',
 };
 
 const isSecret = (a: Auth | null) =>
@@ -63,7 +75,43 @@ export default function Terminal({ openApp, focused }: TerminalProps) {
     if (auth?.step !== 'busy' && focused) inputRef.current?.focus();
   }, [auth, focused]);
 
+  const importBackup = async () => {
+    print('Choose a dashboard backup file (dashboard-<user>.json)...');
+    const text = await pickBackupFile();
+    if (text === null) return print('dashboard: import cancelled');
+    let backup: ReturnType<typeof parseBackup>;
+    try {
+      backup = parseBackup(text);
+    } catch (e) {
+      return print(`dashboard: import failed: ${(e as Error).message}`);
+    }
+    if (dash.exists(backup.user)) {
+      print(`An account '${backup.user}' already exists in this browser.`);
+      return setAuth({ step: 'overwrite', backup });
+    }
+    restoreBackup(backup);
+    print(`Imported '${backup.user}'. Log in with: dashboard ${backup.user}`);
+  };
+
   const startDashboard = (args: string[]) => {
+    if (args[0] === 'export') {
+      if (!dash.user) return print('dashboard: log in first, then run dashboard export');
+      const user = dash.user;
+      void dash.flush().then(() => {
+        const b = exportBackup(user);
+        if (!b) return print('dashboard: nothing saved yet to export');
+        download(b.filename, b.json);
+        print(
+          `Saved ${b.filename} (still encrypted with your password).`,
+          'On another browser or the live site, run dashboard import and pick that file.',
+        );
+      });
+      return;
+    }
+    if (args[0] === 'import') {
+      void importBackup();
+      return;
+    }
     if (args[0] === 'logout') {
       if (!dash.user) return print('dashboard: not logged in');
       const user = dash.user;
@@ -71,7 +119,7 @@ export default function Terminal({ openApp, focused }: TerminalProps) {
       return;
     }
     if (args.length > 1 || (args[0] && !USERNAME_RE.test(normalizeUser(args[0])))) {
-      return print('usage: dashboard [username] | dashboard logout');
+      return print('usage: dashboard [username] | dashboard logout | dashboard export | dashboard import');
     }
     if (dash.user && (!args[0] || normalizeUser(args[0]) === dash.user)) {
       openApp('dashboard');
@@ -97,6 +145,13 @@ export default function Terminal({ openApp, focused }: TerminalProps) {
     // Echo the prompt; secrets are never shown, like a real tty
     print(`${AUTH_PROMPT[a.step]}${isSecret(a) ? '' : value}`);
     switch (a.step) {
+      case 'overwrite':
+        setAuth(null);
+        if (!/^y(es)?$/i.test(value.trim())) return print('Import cancelled. Nothing changed.');
+        // Replacing the signed-in account: lock first so a later save can't clobber the import
+        if (dash.user === a.backup.user) await dash.logout();
+        restoreBackup(a.backup);
+        return print(`Replaced '${a.backup.user}'. Log in with: dashboard ${a.backup.user}`);
       case 'user': {
         const user = normalizeUser(value);
         if (!user) return setAuth(null);

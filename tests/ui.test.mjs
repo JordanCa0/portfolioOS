@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { chromium } from 'playwright';
 
 const BASE = 'http://localhost:5199/portfolioOS/';
@@ -373,6 +374,43 @@ check('Show everything restores the default layout',
   (await Promise.all(['calendar', 'day', 'timers', 'habits'].map((n) => panel(n).isVisible()))).every(Boolean) &&
     (await page.locator('button:has-text("Reset layout")').isDisabled()));
 
+
+// --- BACKUP: export here, import into a browser with empty storage (e.g. the live site) ---
+const [dl] = await Promise.all([page.waitForEvent('download'), page.locator('button:has-text("Export")').click()]);
+const backupPath = await dl.path();
+const backup = JSON.parse(fs.readFileSync(backupPath, 'utf8'));
+check('Export downloads an encrypted backup', dl.suggestedFilename() === 'dashboard-tester.json' && backup.user === 'tester' && !JSON.stringify(backup).includes('Write tests'), dl.suggestedFilename());
+
+const ctx2 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+const page2 = await ctx2.newPage();
+await page2.goto(BASE);
+await page2.waitForTimeout(800);
+const term2 = page2.locator('input[aria-label="jordan@portfolio:~$"]').filter({ visible: true });
+const importVia = async (file) => {
+  const [chooser] = await Promise.all([page2.waitForEvent('filechooser'), (async () => { await term2.fill('dashboard import'); await term2.press('Enter'); })()]);
+  await chooser.setFiles(file);
+  await page2.waitForTimeout(300);
+};
+const junk = backupPath + '.junk.json';
+fs.writeFileSync(junk, '{"hello":"world"}');
+await importVia(junk);
+check('importing a non-backup file is refused', await page2.getByText('dashboard: import failed: not a dashboard backup').isVisible());
+await importVia(backupPath);
+check('dashboard import restores the account in a fresh browser', await page2.getByText("Imported 'tester'. Log in with: dashboard tester").isVisible());
+await term2.fill('dashboard tester');
+await term2.press('Enter');
+await page2.locator('input[aria-label="Password:"]').fill(SECRET);
+await page2.locator('input[aria-label="Password:"]').press('Enter');
+await page2.locator('button[aria-label="Log out"]').waitFor({ timeout: 8000 });
+check('the imported account opens with its password and keeps its data',
+  (await page2.locator('aside[aria-label="Selected day"] button[aria-label="Uncheck Write tests"]').count()) === 1);
+await importVia(backupPath);
+check('importing over an existing account asks first', await page2.getByText("An account 'tester' already exists in this browser.").isVisible());
+const ow = page2.locator('input[aria-label="Replace it? [y/N]"]');
+await ow.fill('n');
+await ow.press('Enter');
+check('declining leaves the account untouched', await page2.getByText('Import cancelled. Nothing changed.').isVisible());
+await ctx2.close();
 
 console.log(results.join('\n'));
 await browser.close();

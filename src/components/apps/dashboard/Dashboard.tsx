@@ -1,5 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { CalendarDays, ListTodo, Lock, LogOut, RotateCcw, Target, Terminal, Timer as TimerIcon } from 'lucide-react';
+import {
+  CalendarDays,
+  Download,
+  ListTodo,
+  Lock,
+  LogOut,
+  RotateCcw,
+  Target,
+  Terminal,
+  Timer as TimerIcon,
+  Upload,
+} from 'lucide-react';
 import type { AppId } from '../../../types';
 import { useDashboard } from './DashboardContext';
 import { btn } from './shared';
@@ -11,6 +22,74 @@ import { EditorHost } from './calendar/EditorHost';
 import TileLayout, { type PanelDef } from './tiles/TileLayout';
 import { add, ALL_PANELS, DEFAULT_TREE, isOpen, remove, useTiles, type Panel } from './tiles/layout';
 import { todayKey } from '../../../lib/dashboard/model';
+import { download, exportBackup, parseBackup, pickBackupFile, restoreBackup } from '../../../lib/dashboard/vault';
+
+type ImportState =
+  | { kind: 'idle' }
+  | { kind: 'confirm'; backup: ReturnType<typeof parseBackup> }
+  | { kind: 'done'; user: string }
+  | { kind: 'error'; message: string };
+
+/**
+ * Restore a backup file (exported elsewhere, e.g. on localhost) into this
+ * browser. It stays encrypted; the user still logs in with its password.
+ */
+function ImportBackup({ exists }: { exists: (user: string) => boolean }) {
+  const [state, setState] = useState<ImportState>({ kind: 'idle' });
+  const pick = async () => {
+    const text = await pickBackupFile();
+    if (text === null) return;
+    try {
+      const backup = parseBackup(text);
+      if (exists(backup.user)) return setState({ kind: 'confirm', backup });
+      restoreBackup(backup);
+      setState({ kind: 'done', user: backup.user });
+    } catch (e) {
+      setState({ kind: 'error', message: (e as Error).message });
+    }
+  };
+
+  if (state.kind === 'confirm') {
+    return (
+      <div className="flex flex-col items-center gap-2 text-xs" role="alert">
+        <p>
+          An account <b>{state.backup.user}</b> already exists in this browser. Replace it with the backup?
+        </p>
+        <div className="flex gap-1.5">
+          <button
+            className={btn}
+            onClick={() => {
+              restoreBackup(state.backup);
+              setState({ kind: 'done', user: state.backup.user });
+            }}
+          >
+            Replace
+          </button>
+          <button className={btn} onClick={() => setState({ kind: 'idle' })}>
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <button className={`${btn} flex items-center gap-1.5`} onClick={() => void pick()}>
+        <Upload size={12} /> Import backup
+      </button>
+      {state.kind === 'done' && (
+        <p className="text-xs" role="status">
+          Imported <b>{state.user}</b>. Log in with <code className="text-term-green">dashboard {state.user}</code>
+        </p>
+      )}
+      {state.kind === 'error' && (
+        <p className="text-xs text-accent-hover" role="alert">
+          Import failed: {state.message}
+        </p>
+      )}
+    </div>
+  );
+}
 
 const TABS = [
   { id: 'planner', label: 'Planner', icon: CalendarDays },
@@ -40,7 +119,7 @@ function useSize(ref: React.RefObject<HTMLElement>) {
 }
 
 export default function Dashboard({ openApp }: { openApp: (id: AppId) => void }) {
-  const { user, data, logout } = useDashboard();
+  const { user, data, logout, flush, exists } = useDashboard();
   const [tab, setTab] = useState<Tab>('planner');
   const rootRef = useRef<HTMLDivElement>(null);
   const size = useSize(rootRef);
@@ -66,6 +145,12 @@ export default function Dashboard({ openApp }: { openApp: (id: AppId) => void })
         <button className={`${btn} mt-1 flex items-center gap-1.5`} onClick={() => openApp('terminal')}>
           <Terminal size={12} /> Open terminal
         </button>
+        <div className="mt-4 max-w-xs border-t border-edge pt-4">
+          <p className="mb-2 text-[11px] text-body-muted">
+            Moving from another browser or from localhost? Export there, then import the file here.
+          </p>
+          <ImportBackup exists={exists} />
+        </div>
       </div>
     );
   }
@@ -162,6 +247,17 @@ export default function Dashboard({ openApp }: { openApp: (id: AppId) => void })
         <span className="ml-auto mr-2 text-xs text-body-muted">
           <span className="text-term-green">{user}</span>@dashboard
         </span>
+        <button
+          className={`${btn} mr-1 flex items-center gap-1`}
+          title="Download an encrypted backup (import it on another browser or the live site)"
+          onClick={async () => {
+            await flush();
+            const b = exportBackup(user);
+            if (b) download(b.filename, b.json);
+          }}
+        >
+          <Download size={12} /> Export
+        </button>
         <button className={`${btn} flex items-center gap-1`} onClick={() => void logout()} aria-label="Log out">
           <LogOut size={12} /> Lock
         </button>

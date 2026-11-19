@@ -17,6 +17,8 @@ interface DashboardContextValue {
   login: (user: string, password: string) => Promise<boolean>;
   register: (user: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  /** Save pending edits now (before an export, say) instead of after the debounce */
+  flush: () => Promise<void>;
 }
 
 const Ctx = createContext<DashboardContextValue | null>(null);
@@ -107,6 +109,13 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
     setData(res.data);
   }, []);
 
+  const flush = useCallback(async () => {
+    if (session && data && dirty.current) {
+      dirty.current = false;
+      await saveVault(session, data);
+    }
+  }, [session, data]);
+
   const logout = useCallback(async () => {
     if (session && data && dirty.current) await saveVault(session, data);
     dirty.current = false;
@@ -124,6 +133,7 @@ export function DashboardProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         logout,
+        flush,
       }}
     >
       {children}

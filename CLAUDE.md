@@ -80,6 +80,10 @@ All ~23 checks must pass before pushing window-manager or app changes.
   AES-GCM under a PBKDF2 key from the password, in localStorage
   'dashboard-vaults'. The key lives only in memory (`DashboardContext`), so
   a refresh locks it again. A forgotten password means the data is gone.
+  Data never leaves the origin on its own (localhost ≠ the live site):
+  `dashboard export` / the Export button download the still-encrypted
+  vault as `dashboard-<user>.json`; `dashboard import` / "Import backup"
+  on the locked screen restore it (asks before replacing an account).
   Recurring tasks double as habits (completion chart + streaks); timers
   ring from the provider, so they fire with the window closed. Desktop only.
   Planner is Google-Calendar-like: todos with `start`/`end` (minutes) are
